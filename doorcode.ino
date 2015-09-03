@@ -64,6 +64,7 @@ const char LCDFuckOff[16] = {'G','O',' ','A','W','A','Y','!',' ',' ',' ',' ',' '
 const char LCDAdminMode[16] = {'A','D','M','I','N',' ','M','O','D','E',' ',' ',' ',' ',' ',' '};
 const char LCDPINAdd[16] = {'P','I','N',' ','A','D','D','E','D',' ',' ',' ',' ',' ',' ',' '};
 const char LCDPINDelete[16] = {'P','I','N',' ','D','E','L','E','T','E','D',' ',' ',' ',' ',' '};
+const char LCDPINFail[16] = {'O','P',' ','F','A','I','L','E','D',' ',' ',' ',' ',' ',' ',' '};
 
 // Connect keypad ROW0, ROW1, ROW2 and ROW3 to these Arduino pins.
 byte rowPins[ROWS] = { 9, 8, 7, 6 };
@@ -126,18 +127,21 @@ void correctCode(){ //Locks or unlocks the door based on the current state
     servoUnlock();
     doorLocked = false;
   }
+  delay(5000);
   reset();
 }
 
 void goAway(){
    lcd.clear();
    lcd.print(LCDFuckOff);
+   delay(5000);
    reset();
 }
 
 bool adminMode(){
 
   //icount = 0;
+  boolean pwChange = false;
   char temp[4];
   lcd.clear();
   lcd.print(LCDAdminMode);
@@ -153,9 +157,40 @@ bool adminMode(){
   }
   for (int i = 0; i < numKeys; i += 1){
     if (compare4(temp, passKeys[i])){
-           
+      passKeys[i][0] = 8;
+      passKeys[i][2] = 8;
+      passKeys[i][3] = 8;
+      passKeys[i][4] = 8;
+      lcd.clear();
+      lcd.print(LCDPINDelete);
+      numKeys -= 1; 
+      delay(5000);
+      reset();
+      pwChange = true;
+      return pwChange;
     }
-  }  
+  }
+  for (int i = 0; i < numKeys; i += 1){
+    if (compare4(MASTERKEY, passKeys[i])){
+      passKeys[i][0] = temp[0];
+      passKeys[i][1] = temp[1];
+      passKeys[i][2] = temp[2];
+      passKeys[i][3] = temp[3];
+      pwChange = true;
+    }
+  }
+  if (pwChange){
+    lcd.clear();
+    lcd.print(LCDPINAdd);
+    delay(5000);
+    reset();
+  }
+  else {
+    lcd.clear();
+    lcd.print(LCDPINFail);
+    delay(5000);
+  }
+  return pwChange;
 }
 
 void setup() {
