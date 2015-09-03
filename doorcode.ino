@@ -9,6 +9,13 @@
  * bniu2@illinois.edu
  * www.github.com/Lathie
  * 
+ * TODO:
+ * Admin mode
+ * Multiple passphrases
+ * 
+ * Notes:
+ * Default Master Key is 8888
+ * 
  * 
  ************************************/
 
@@ -20,6 +27,17 @@ char keys[ROWS][COLS] = {
   {'4','5','6'},
   {'7','8','9'},
   {'#','0','*'}
+};
+
+// Define passkeys
+
+int numKeys = 0;
+char passKeys[5][4]{ //Set equal to MasterKey
+  {'8','8','8','8'},
+  {'8','8','8','8'},
+  {'8','8','8','8'},
+  {'8','8','8','8'},
+  {'8','8','8','8'}
 };
 
 //Define Victor's Variables :D
@@ -55,12 +73,26 @@ byte colPins[COLS] = { 12, 11, 10 };
 Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 void reset(){
-
   //reset LCD screen
   lcd.clear();
   lcd.print(LCDStart);
   icount = 0;
- 
+  input[0] = 0;
+  input[1] = 0;
+  input[2] = 0;
+  input[3] = 0;
+  
+}
+
+//compare 2 character arrays.
+bool compare4(char a[4], char b[4]){ 
+  for (int i = 0; i < 4; i++){
+    if (a[i] != b[i]){
+      return false;
+    }
+  }
+  return true;
+    
 }
 
 void servoLock(){
@@ -77,18 +109,16 @@ void servoUnlock(){
   } 
 }
 
-void correctCode(){
-
-  //update LCD screen
-  if (!doorLocked){
-    lcd.clear();
+void correctCode(){ //Locks or unlocks the door based on the current state
+  
+  if (!doorLocked){ //update LCD screen
     lcd.print(LCDGoodbye);
     lcd.setCursor(0,1);
     lcd.print(LCDLocked);
     servoLock();
     doorLocked = true;
   }
-  else {
+  else { //update LCD screen
     lcd.clear();
     lcd.print(LCDWelcome);
     lcd.setCursor(0,1);
@@ -105,15 +135,27 @@ void goAway(){
    reset();
 }
 
-//compare 2 character arrays.
-bool compare4(char a[4], char b[4]){ 
-  for (int i = 0; i < 4; i++){
-    if (a[i] != b[i]){
-      return false;
-    }
+bool adminMode(){
+
+  //icount = 0;
+  char temp[4];
+  lcd.clear();
+  lcd.print(LCDAdminMode);
+  lcd.setCursor(icount, 1);
+  for (icount = 0; icount < 4; icount += 1){
+    char key = kpd.getKey();
+    if(key)  // Check for a valid key.
+    {  
+      temp[icount] = key;
+      lcd.print(key);
+      icount += 1;
+    } 
   }
-  return true;
-    
+  for (int i = 0; i < numKeys; i += 1){
+    if (compare4(temp, passKeys[i])){
+           
+    }
+  }  
 }
 
 void setup() {
@@ -139,9 +181,14 @@ void loop() {
   }
   else {
     if (compare4(input, MASTERKEY)){//later force admin mode
-      correctCode();
+      adminMode();
     }
     else{
+      for (int i = 0; i < numKeys; i += 1){
+        if (compare4(input, passKeys[i])){
+          correctCode();
+        }
+      }
       goAway();
     }
   }
